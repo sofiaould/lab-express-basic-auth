@@ -24,8 +24,36 @@ router.post('/signup', (req, res, next) => {
     })
       .then(userFromDB => {
         console.log('Newly created user is: ', userFromDB)
-        res.redirect ('/');
+        res.redirect('/profile',{user:userFromDB});
       })
       .catch(error => next(error));
 });
+router.get('/login',(req,res,next)=>{
+  res.render('auth/login')
+})
+router.post('/login',(req,res,next)=>{
+  console.log('req.session:',req.session)
+  const {username, password} = req.body;
+  //check si les 2 champs sont remplis
+  if(username === '' || password === ''){
+    res.render('auth/login',{errorMessage:'Merci de remplir les 2 champs'})
+    return
+  }
+  User.findOne({username:username})
+  .then(userFromDB=>{
+    if(!userFromDB){
+      res.render('auth/login',{errorMessage:'user non trouve'})
+      return
+    } else if (bcrypt.compareSync(password,userFromDB.hashedPassword)){
+      req.session.currentUser = userFromDB;
+      res.redirect('/profile')
+    } else {
+      res.render('auth/login',{errorMessage:'Mauvais mot de passe'})
+    }
+  })
+  .catch(err=>next(err))
+})
+router.get('/profile',(req,res,next)=>{
+  res.render('auth/profile',{user: req.session.currentUser})
+})
 module.exports = router;
